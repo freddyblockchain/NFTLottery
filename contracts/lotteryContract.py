@@ -3,11 +3,11 @@ import json
 
 # Create an expression to store 0 in the `Count` global variable and return 1
 handle_creation = Seq(
-    App.globalPut(Bytes("CurrentRandom"), Global.zero_address()),
     App.globalPut(Bytes("Participants"), Int(0)),
     App.globalPut(Bytes("Ongoing"), Int(0)),
     App.globalPut(Bytes("LotteryRound"), Int(0)),
     App.globalPut(Bytes("Winner"), Int(0)),
+    App.globalPut(Bytes("LotteryResolved"), Int(0)),
     Approve()
 )
 
@@ -19,43 +19,40 @@ router = Router(
         update_application=OnCompleteAction.always(Reject()),
         delete_application=OnCompleteAction.always(Reject()),
         close_out=OnCompleteAction.never(),
-        opt_in=OnCompleteAction.never(),     
+        opt_in=OnCompleteAction.always(Approve()),     
         clear_state=OnCompleteAction.never(),  
     ),
 )
 
 @router.method(no_op=CallConfig.CALL)
+def resetLottery(*,output: abi.String) -> Expr:
+    """Use this method for when the winner does not claim his/her reward, and the lottery is blocked."""
+    return Seq (
+        Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
+        Assert(Global.round() >= App.globalGet(Bytes("LotteryRound")) + Int(50)),
+        App.globalPut(Bytes("Participants"), Int(0)),
+        App.globalPut(Bytes("Ongoing"), Int(0)),
+        App.globalPut(Bytes("LotteryResolved"), Int(0)),
+        output.set("lottery is reset!")
+    )
+
+@router.method(no_op=CallConfig.CALL)
 def claimWin(*,output: abi.String) -> Expr:
     return Seq (
         Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
+        Assert(App.globalGet(Bytes("LotteryResolved")) == Int(1)),
         Assert(App.localGet(Txn.sender(), Bytes("ParticipantNumber")) == App.globalGet(Bytes("Winner"))),
         Assert(App.localGet(Txn.sender(), Bytes("ParticipantLotteryRound")) == App.globalGet(Bytes("LotteryRound"))),
+        App.globalPut(Bytes("LotteryResolved"), Int(0)),
         App.globalPut(Bytes("Participants"), Int(0)),
+        App.globalPut(Bytes("Ongoing"), Int(0)),
         output.set("you are the winner!")
     )
-
 @router.method(no_op=CallConfig.CALL)
-def participate() -> Expr:
-    return Seq(
-        Assert(Global.round() <= App.globalGet(Bytes("LotteryRound"))),
-        Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
-        App.localPut(Txn.sender(), Bytes("ParticipantNumber"), App.globalGet(Bytes("Participants"))),
-        App.localPut(Txn.sender(), Bytes("ParticipantLotteryRound"), App.globalGet(Bytes("LotteryRound"))),
-        App.globalPut(Bytes("Participants"), App.globalGet(Bytes("Participants")) + Int(1)),
-    )    
-
-@router.method(no_op=CallConfig.CALL)
-def startLottery() -> Expr:
-    return Seq(
-        Assert(App.globalGet(Bytes("Ongoing")) == Int(0)),
-        App.globalPut(Bytes("LotteryRound"), Add(Global.round(), Int(10))),
-        App.globalPut(Bytes("Ongoing"), Int(1)),
-    )
-
-@router.method(no_op=CallConfig.CALL)
-def getRandomNumber(random_contract_call: abi.Application,*,output: abi.DynamicBytes) -> Expr:
+def resolveLottery(random_contract_call: abi.Application,*,output: abi.DynamicBytes) -> Expr:
     return Seq(
         Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
+        Assert(App.globalGet(Bytes("LotteryResolved")) == Int(0)),
         Assert(random_contract_call.application_id() == Int(110096026)),
         Assert(Global.round() >= App.globalGet(Bytes("LotteryRound"))),
 
@@ -69,11 +66,29 @@ def getRandomNumber(random_contract_call: abi.Application,*,output: abi.DynamicB
 
         App.globalPut(Bytes("RandomNumber"), Btoi(Substring(InnerTxn.last_log(), Int(8), Int(16)))),
         App.globalPut(Bytes("Winner"), App.globalGet(Bytes("RandomNumber")) % App.globalGet(Bytes("Participants"))),
-        App.globalPut(Bytes("Ongoing"), Int(0)),
+        App.globalPut(Bytes("LotteryResolved"), Int(1)),
 
-        output.set(App.globalGet(Bytes('CurrentRandom'))),
+        output.set(App.globalGet(Bytes('Winner'))),
     )
+   
 
+@router.method(no_op=CallConfig.CALL)
+def participate() -> Expr:
+    return Seq(
+        Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
+        Assert(Global.round() <= App.globalGet(Bytes("LotteryRound"))),
+        App.localPut(Txn.sender(), Bytes("ParticipantNumber"), App.globalGet(Bytes("Participants"))),
+        App.localPut(Txn.sender(), Bytes("ParticipantLotteryRound"), App.globalGet(Bytes("LotteryRound"))),
+        App.globalPut(Bytes("Participants"), App.globalGet(Bytes("Participants")) + Int(1)),
+    )    
+
+@router.method(no_op=CallConfig.CALL)
+def startLottery() -> Expr:
+    return Seq(
+        Assert(App.globalGet(Bytes("Ongoing")) == Int(0)),
+        App.globalPut(Bytes("LotteryRound"), Global.round() +  Int(10)),
+        App.globalPut(Bytes("Ongoing"), Int(1)),
+    )
 
 approval_program, clear_state_program, contract = router.compile_program(
     version=7, optimize=OptimizeOptions(scratch_slots=True)
