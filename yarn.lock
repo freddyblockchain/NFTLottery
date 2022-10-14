@@ -7,10 +7,10 @@ algo-msgpack-with-bigint@^2.1.1:
   resolved "https://registry.yarnpkg.com/algo-msgpack-with-bigint/-/algo-msgpack-with-bigint-2.1.1.tgz#38bb717220525b3ff42232eefdcd9efb9ad405d6"
   integrity sha512-F1tGh056XczEaEAqu7s+hlZUDWwOBT70Eq0lfMpBP2YguSQVyxRbprLq5rELXKQOyOaixTWYhMeMQMzP0U5FoQ==
 
-algosdk@^1.21.0:
-  version "1.21.0"
-  resolved "https://registry.yarnpkg.com/algosdk/-/algosdk-1.21.0.tgz#2e11fe5eb719ed932659c1472baf344bf4bfffbf"
-  integrity sha512-pgHzEExFn8hjcDphQYo+0Pi6TLWZOyXPcxjisldd6ZaaF0cNsB6C97n66OXi0gtL3mvMIgD53SLBfzy1u9YM+g==
+algosdk@^1.22.0:
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/algosdk/-/algosdk-1.22.0.tgz#7d38232883a4de3bb9403fb9592cdaf0785c8b35"
+  integrity sha512-oj2G1ucLyqfTAPM9iIWiSfU0Jmwx1gaafqlC2RaWcwHx86cwnFTwEf/haFQ9yoirkIozVlZYTYtv+Ltkj3il8w==
   dependencies:
     algo-msgpack-with-bigint "^2.1.1"
     buffer "^6.0.2"
@@ -108,11 +108,6 @@ formidable@^1.2.2:
   version "1.2.6"
   resolved "https://registry.yarnpkg.com/formidable/-/formidable-1.2.6.tgz#d2a51d60162bbc9b4a055d8457a7c75315d1a168"
   integrity sha512-KcpbcpuLNOwrEjnbpMC0gS+X8ciDoZE1kkqzat4a8vrprf+s9pKNQ/QIwWfbfs4ltgmFl3MD177SNTkve3BwGQ==
-
-fs@^0.0.1-security:
-  version "0.0.1-security"
-  resolved "https://registry.yarnpkg.com/fs/-/fs-0.0.1-security.tgz#8a7bd37186b6dddf3813f23858b57ecaaf5e41d4"
-  integrity sha512-3XY9e1pP0CVEUCdj5BmfIZxRBTSDycnbqhIOGec9QYtmVH2fbLpj86CFWkrNOkt/Fvty4KZG5lTglL9j/gJ87w==
 
 fsevents@2.1.2:
   version "2.1.2"

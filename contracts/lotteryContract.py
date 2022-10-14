@@ -29,7 +29,7 @@ def resetLottery(*,output: abi.String) -> Expr:
     """Use this method for when the winner does not claim his/her reward, and the lottery is blocked."""
     return Seq (
         Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
-        Assert(Global.round() >= App.globalGet(Bytes("LotteryRound")) + Int(50)),
+        Assert(Global.round() >= App.globalGet(Bytes("LotteryRound")) + Int(60)),
         App.globalPut(Bytes("Participants"), Int(0)),
         App.globalPut(Bytes("Ongoing"), Int(0)),
         App.globalPut(Bytes("LotteryResolved"), Int(0)),
@@ -49,12 +49,12 @@ def claimWin(*,output: abi.String) -> Expr:
         output.set("you are the winner!")
     )
 @router.method(no_op=CallConfig.CALL)
-def resolveLottery(random_contract_call: abi.Application,*,output: abi.DynamicBytes) -> Expr:
+def resolveLottery(random_contract_call: abi.Application,*,output: abi.Uint64) -> Expr:
     return Seq(
         Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
         Assert(App.globalGet(Bytes("LotteryResolved")) == Int(0)),
         Assert(random_contract_call.application_id() == Int(110096026)),
-        Assert(Global.round() >= App.globalGet(Bytes("LotteryRound"))),
+        Assert(Global.round() >= App.globalGet(Bytes("LotteryRound")) + Int(5)),
 
         InnerTxnBuilder.Begin(),
         InnerTxnBuilder.MethodCall(
@@ -63,30 +63,29 @@ def resolveLottery(random_contract_call: abi.Application,*,output: abi.DynamicBy
         args=[Itob(App.globalGet(Bytes("LotteryRound"))),Bytes("base32", "7Z5PWO2C6LFNQFGHWKSK5H47IQP5OJW2M3HA2QPXTY3WTNP5NU2MHBW27M")]
         ),
         InnerTxnBuilder.Submit(),
-
-        App.globalPut(Bytes("RandomNumber"), Btoi(Substring(InnerTxn.last_log(), Int(8), Int(16)))),
-        App.globalPut(Bytes("Winner"), App.globalGet(Bytes("RandomNumber")) % App.globalGet(Bytes("Participants"))),
+        App.globalPut(Bytes("Winner"), Btoi(Substring(InnerTxn.last_log(), Int(8), Int(16))) % App.globalGet(Bytes("Participants")) + Int(1)),
         App.globalPut(Bytes("LotteryResolved"), Int(1)),
-
         output.set(App.globalGet(Bytes('Winner'))),
     )
    
 
 @router.method(no_op=CallConfig.CALL)
-def participate() -> Expr:
+def participate(*,output: abi.Uint64) -> Expr:
     return Seq(
         Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
         Assert(Global.round() <= App.globalGet(Bytes("LotteryRound"))),
+        Assert(App.localGet(Txn.sender(), Bytes("ParticipantLotteryRound")) != App.globalGet(Bytes("LotteryRound"))),
+        App.globalPut(Bytes("Participants"), App.globalGet(Bytes("Participants")) + Int(1)),
         App.localPut(Txn.sender(), Bytes("ParticipantNumber"), App.globalGet(Bytes("Participants"))),
         App.localPut(Txn.sender(), Bytes("ParticipantLotteryRound"), App.globalGet(Bytes("LotteryRound"))),
-        App.globalPut(Bytes("Participants"), App.globalGet(Bytes("Participants")) + Int(1)),
+        output.set(App.localGet(Txn.sender(), Bytes("ParticipantNumber")))
     )    
 
 @router.method(no_op=CallConfig.CALL)
 def startLottery() -> Expr:
     return Seq(
         Assert(App.globalGet(Bytes("Ongoing")) == Int(0)),
-        App.globalPut(Bytes("LotteryRound"), Global.round() +  Int(10)),
+        App.globalPut(Bytes("LotteryRound"), Global.round() +  Int(15)),
         App.globalPut(Bytes("Ongoing"), Int(1)),
     )
 

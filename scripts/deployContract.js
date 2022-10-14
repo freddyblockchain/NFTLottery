@@ -26,10 +26,10 @@ async function compileProgram(client, TealSource) {
 
 (async () => {
   try {
-    const localInts = 0
+    const localInts = 2
     const localBytes = 0
-    const globalInts = 4
-    const globalBytes = 1
+    const globalInts = 5
+    const globalBytes = 0
 
     let approvalProgramfile = await open('./build/lottery_contract.teal');
     let clearProgramfile = await open('./build/lottery_contract_state.teal');
