@@ -37,7 +37,7 @@ def resetLottery(*,output: abi.String) -> Expr:
     )
 
 @router.method(no_op=CallConfig.CALL)
-def claimWin(*,output: abi.String) -> Expr:
+def claimWin(asset_to_receive: abi.Asset) -> Expr:
     return Seq (
         Assert(App.globalGet(Bytes("Ongoing")) == Int(1)),
         Assert(App.globalGet(Bytes("LotteryResolved")) == Int(1)),
@@ -46,7 +46,14 @@ def claimWin(*,output: abi.String) -> Expr:
         App.globalPut(Bytes("LotteryResolved"), Int(0)),
         App.globalPut(Bytes("Participants"), Int(0)),
         App.globalPut(Bytes("Ongoing"), Int(0)),
-        output.set("you are the winner!")
+        InnerTxnBuilder.Begin(),
+        InnerTxnBuilder.SetFields({
+            TxnField.type_enum: TxnType.AssetTransfer,
+            TxnField.asset_receiver: Txn.sender(),
+            TxnField.asset_amount: Int(1),
+            TxnField.xfer_asset: asset_to_receive.asset_id(), # Must be in the assets array sent as part of the application call
+        }),
+        InnerTxnBuilder.Submit()
     )
 @router.method(no_op=CallConfig.CALL)
 def resolveLottery(random_contract_call: abi.Application,*,output: abi.Uint64) -> Expr:
@@ -89,6 +96,25 @@ def startLottery() -> Expr:
         App.globalPut(Bytes("Ongoing"), Int(1)),
     )
 
+@router.method(no_op=CallConfig.CALL)
+def createLotteryAsset() -> Expr:
+    return Seq([
+        Assert(Txn.sender() == Global.creator_address()),
+        InnerTxnBuilder.Begin(),
+        InnerTxnBuilder.SetFields({
+            TxnField.type_enum: TxnType.AssetConfig,
+            TxnField.config_asset_total: Int(10000),
+            TxnField.config_asset_decimals: Int(0),
+            TxnField.config_asset_unit_name: Bytes("la"),
+            TxnField.config_asset_name: Bytes("LotteryAsset"),
+            TxnField.config_asset_url: Bytes("LotteryAsset.win"),
+            TxnField.config_asset_manager: Global.current_application_address(),
+            TxnField.config_asset_reserve: Global.current_application_address(),
+            TxnField.config_asset_freeze: Global.current_application_address(),
+            TxnField.config_asset_clawback: Global.current_application_address(),
+        }),
+        InnerTxnBuilder.Submit()
+    ])    
 approval_program, clear_state_program, contract = router.compile_program(
     version=7, optimize=OptimizeOptions(scratch_slots=True)
 )

@@ -27,7 +27,7 @@ let sender = myaccount.addr;
         return m
     }
 
-    const startLottery = getMethodByName("startLottery")
+    const startLottery = getMethodByName("createLotteryAsset")
 
     const sp = await algodClient.getTransactionParams().do()
     const commonParams = {
