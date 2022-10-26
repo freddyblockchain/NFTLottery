@@ -33,6 +33,7 @@ def resetLottery(*,output: abi.String) -> Expr:
         App.globalPut(Bytes("Participants"), Int(0)),
         App.globalPut(Bytes("Ongoing"), Int(0)),
         App.globalPut(Bytes("LotteryResolved"), Int(0)),
+        App.globalPut(Bytes("Winner"), Int(0)),
         output.set("lottery is reset!")
     )
 
@@ -43,9 +44,6 @@ def claimWin(asset_to_receive: abi.Asset) -> Expr:
         Assert(App.globalGet(Bytes("LotteryResolved")) == Int(1)),
         Assert(App.localGet(Txn.sender(), Bytes("ParticipantNumber")) == App.globalGet(Bytes("Winner"))),
         Assert(App.localGet(Txn.sender(), Bytes("ParticipantLotteryRound")) == App.globalGet(Bytes("LotteryRound"))),
-        App.globalPut(Bytes("LotteryResolved"), Int(0)),
-        App.globalPut(Bytes("Participants"), Int(0)),
-        App.globalPut(Bytes("Ongoing"), Int(0)),
         InnerTxnBuilder.Begin(),
         InnerTxnBuilder.SetFields({
             TxnField.type_enum: TxnType.AssetTransfer,
@@ -53,7 +51,11 @@ def claimWin(asset_to_receive: abi.Asset) -> Expr:
             TxnField.asset_amount: Int(1),
             TxnField.xfer_asset: asset_to_receive.asset_id(), # Must be in the assets array sent as part of the application call
         }),
-        InnerTxnBuilder.Submit()
+        InnerTxnBuilder.Submit(),
+        App.globalPut(Bytes("LotteryResolved"), Int(0)),
+        App.globalPut(Bytes("Participants"), Int(0)),
+        App.globalPut(Bytes("Ongoing"), Int(0)),
+        App.globalPut(Bytes("Winner"), Int(0))
     )
 @router.method(no_op=CallConfig.CALL)
 def resolveLottery(random_contract_call: abi.Application,*,output: abi.Uint64) -> Expr:
